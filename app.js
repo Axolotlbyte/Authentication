@@ -6,7 +6,7 @@ var LocalStrategy = require('passport-local').Strategy;
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
-const mongoDb = "<my mongo url>";
+const mongoDb = "mongodb+srv://arzaan:arzaan@cluster0.vpg87.mongodb.net/Cluster0?retryWrites=true&w=majority";
 mongoose.connect(mongoDb, { useUnifiedTopology: true, useNewUrlParser: true });
 const db = mongoose.connection;
 db.on("error", console.error.bind(console, "mongo connection error"));
