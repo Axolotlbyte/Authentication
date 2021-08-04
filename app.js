@@ -5,6 +5,7 @@ const passport = require("passport");
 var LocalStrategy = require('passport-local').Strategy;
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
+const bcrypt = require('bcryptjs')
 
 const mongoDb = "mongodb+srv://arzaan:arzaan@cluster0.vpg87.mongodb.net/Cluster0?retryWrites=true&w=majority";
 mongoose.connect(mongoDb, { useUnifiedTopology: true, useNewUrlParser: true });
@@ -19,6 +20,13 @@ const User = mongoose.model(
   })
 );
 
+const app = express();
+
+app.use(function(req, res, next) {
+  res.locals.currentUser = req.user;
+  next();
+});
+
 passport.use(
   new LocalStrategy((username, password, done) => {
     User.findOne({ username: username }, (err, user) => {
@@ -28,10 +36,15 @@ passport.use(
       if (!user) {
         return done(null, false, { message: "Incorrect username" });
       }
-      if (user.password !== password) {
-        return done(null, false, { message: "Incorrect password" });
-      }
-      return done(null, user);
+
+      bcrypt.compare(password, user.password, (err,res) => {
+        if(err) { return err }
+        if(res) {
+          return done(null, user)
+        } else{
+          return done(null, false, { message: "Incorrect Password" })
+        }
+      })
     });
   })
 );
@@ -46,7 +59,7 @@ passport.deserializeUser(function(id, done) {
   });
 });
 
-const app = express();
+
 app.set("views", __dirname);
 app.set("view engine", "ejs");
 
@@ -62,15 +75,18 @@ app.get("/", (req, res) => {
 app.get("/sign-up", (req, res) => res.render("sign-up-form"));
 
 app.post("/sign-up", (req, res, next) => {
+  bcrypt.hash(String(req.body.password), 10, (err, hashedPassword) => {
+    if(err) {return err}
     const user = new User({
       username: req.body.username,
-      password: req.body.password
+      password: hashedPassword
     }).save(err => {
       if (err) { 
         return next(err);
       }
       res.redirect("/");
     });
+  });
 });
 
 
@@ -86,5 +102,6 @@ app.get("/log-out", (req, res) => {
   req.logout();
   res.redirect("/");
 });
+
 
 app.listen(3000, () => console.log("app listening on port 3000!"))
